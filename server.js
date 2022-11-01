@@ -16,6 +16,12 @@ const posts = [
     title: 'Post 2',
   },
 ];
+const adminPosts = [
+  {
+    username: 'admin',
+    title: 'admin secrets'
+  }
+]
 
 mongoose.connect(process.env.DATABASE_URI, {
   useNewUrlParser: true,
@@ -34,16 +40,26 @@ app.use(express.json());
 
 app.get('/', (_, res) => res.send('Hello from OTOT-C'));
 
-app.get('/posts', authenticateToken, (req, res) => {
+app.get('/posts', authenticateToken(process.env.ACCESS_TOKEN_SECRET), (req, res) => {
   res.json(posts).send();
 });
+
+app.get('/posts/admin', authenticateToken(process.env.ACCESS_TOKEN_SECRET), (req, res) => {
+  if(req.admin){
+    res.json(adminPosts).send();
+  } else {
+    res.status(403).send();
+  }
+})
 
 app.post('/users', async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const adminRights = (req.body.admin == 'true');
     const newUser = new User({
       name: req.body.name,
       password: hashedPassword,
+      admin: adminRights
     });
     console.log(newUser);
     newUser.save();
@@ -73,19 +89,21 @@ app.post('/users/login', async (req, res) => {
   }
 });
 
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
+function authenticateToken(access_token) {
+  return (req, res, next) => {
+    const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (token == null) {
     res.status(401).send();
   }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+  jwt.verify(token, access_token, (err, user) => {
     if (err) {
       res.status(403).send();
     }
     req.user = user;
     next();
   });
+  }  
 }
 
 app.listen(3000);

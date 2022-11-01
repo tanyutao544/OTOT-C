@@ -9,6 +9,10 @@ var userSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  admin: {
+    type: Boolean,
+    require: true,
+  }
 });
 
 var User = (module.exports = mongoose.model('user', userSchema));
