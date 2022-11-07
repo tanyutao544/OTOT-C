@@ -45,7 +45,7 @@ app.get('/posts', authenticateToken(process.env.ACCESS_TOKEN_SECRET), (req, res)
 });
 
 app.get('/posts/admin', authenticateToken(process.env.ACCESS_TOKEN_SECRET), (req, res) => {
-  if(req.admin){
+  if(req.user.admin){
     res.json(adminPosts).send();
   } else {
     res.status(403).send();
@@ -77,7 +77,7 @@ app.post('/users/login', async (req, res) => {
     }
     if (await bcrypt.compare(req.body.password, user[0].password)) {
       const accessToken = jwt.sign(
-        { name: user[0].name },
+        { name: user[0].name, admin: user[0].admin },
         process.env.ACCESS_TOKEN_SECRET
       );
       res.json({ acessToken: accessToken });
@@ -91,7 +91,7 @@ app.post('/users/login', async (req, res) => {
 
 function authenticateToken(access_token) {
   return (req, res, next) => {
-    const authHeader = req.headers['authorization'];
+  const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (token == null) {
     res.status(401).send();
